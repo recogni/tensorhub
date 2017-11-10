@@ -3,12 +3,19 @@ package main
 ////////////////////////////////////////////////////////////////////////////////
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"sync"
 
 	"github.com/google/uuid"
+)
+
+////////////////////////////////////////////////////////////////////////////////
+
+const (
+	dbFile = "db.json"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -51,21 +58,40 @@ func (j *Job) startTensorboard() error {
 
 // Jobs aggregates all pending and current jobs.
 type Jobs struct {
-	sync.RWMutex
-	jobs []*Job // queue of current followed by pending jobs
+	lock sync.RWMutex `json:"-"`
+	jobs []*Job       `json:"jobs"` // queue of current followed by pending jobs
 }
 
-// loadJobs loads the jobs saved to the local "db".
+// load loads the jobs saved to the local "db".
 // TODO: Check PID of jobs
-func (js *Jobs) loadJobs() error { return nil }
+func (js *Jobs) load() error {
+	js.lock.Lock()
+	defer js.lock.Unlock()
 
-// saveJobs saves the current and pending jobs to the local "db".
-func (js *Jobs) saveJobs() error { return nil }
+	bs, err := ioutil.ReadFile(dbFile)
+	if err != nil {
+		return err
+	}
 
-// addJob() adds a new job with a specified path to the job list.
-func (js *Jobs) addJob(path string) error {
-	js.Lock()
-	defer js.Unlock()
+	return json.Unmarshal(bs, js)
+}
+
+// flush saves the current and pending jobs to the local "db".
+func (js *Jobs) flush() error {
+	js.lock.Lock()
+	defer js.lock.Unlock()
+
+	bs, err := json.MarshalIndent(&js.jobs, "", "\t")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(dbFile, bs, 0600)
+}
+
+// add adds a new job with a specified path to the job list.
+func (js *Jobs) add(path string) error {
+	js.lock.Lock()
+	defer js.lock.Unlock()
 
 	j, err := newJob(path)
 	if err != nil {
@@ -75,6 +101,8 @@ func (js *Jobs) addJob(path string) error {
 	js.jobs = append(js.jobs, j)
 	return nil
 }
+
+var jobs = &Jobs{lock: sync.RWMutex{}, jobs: []*Job{}}
 
 ////////////////////////////////////////////////////////////////////////////////
 
