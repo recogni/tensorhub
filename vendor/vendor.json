@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "1vQyx/TpUGbKzJcTGhTddJxJiD0=",
+			"path": "github.com/google/uuid",
+			"revision": "e367a344cbe8e08149f9951115dc299ebd42b919",
+			"revisionTime": "2017-10-19T17:36:51Z"
+		}
+	],
+	"rootPath": "github.com/recogni/tensorhub"
+}
